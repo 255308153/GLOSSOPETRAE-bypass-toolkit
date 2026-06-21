@@ -21,7 +21,7 @@
   textarea { min-height:80px; font-family:'SF Mono','Fira Code',monospace; }
   textarea:focus, input:focus, select:focus { outline:none; border-color:var(--blue); }
 
-  .method-cards { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+  .method-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
   .method-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px 8px; cursor:pointer; text-align:center; transition:.15s; }
   .method-card:hover { border-color:var(--blue); }
   .method-card.selected { border-color:var(--green); background:#1a2e1a; }
@@ -105,13 +105,19 @@
     </div>
     <div class="method-card" data-method="semantic" onclick="pickMethod(this)">
       <div class="icon">🧠</div><div class="title">Semantic Stego</div>
-      <div class="desc">同义词替换改指纹<br>纯英文无特殊字符</div>
-      <div class="tag tag-purple">无法修复</div>
+      <div class="desc">同义词替换·九信道隐写<br>Light纯英文/Full加密级</div>
+      <div class="tag tag-purple">论文最强 双模式</div>
     </div>
-    <div class="method-card" data-method="fullstego" onclick="pickMethod(this)">
-      <div class="icon">🛡️</div><div class="title">Full Stego 九信道</div>
-      <div class="desc">完整隐写引擎<br>XOR+ReedSolomon+CRC</div>
-      <div class="tag tag-purple">加密级</div>
+  </div>
+  <div id="semanticModeRow" class="hidden" style="margin-top:12px;">
+    <label style="color:var(--dim);font-size:0.8em;">Semantic Stego 模式选择</label>
+    <div style="display:flex;gap:16px;margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82em;color:var(--text);">
+        <input type="radio" name="semMode" value="light" checked onchange="setSemMode('light')"> 🔤 Light — 同义词替换，纯英文输出
+      </label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:0.82em;color:var(--text);">
+        <input type="radio" name="semMode" value="full" onchange="setSemMode('full')"> 🛡️ Full — 九信道引擎（XOR+RS+CRC32）
+      </label>
     </div>
   </div>
   <label style="margin-top:12px;display:inline;"><input type="checkbox" id="antiRefusal"> 附带学术语境包装</label>
@@ -309,13 +315,18 @@ async function conlangEncode(text){
 
 // ========== State ==========
 let selectedMethod='tokenbreak';
+let semMode='light';
+window.setSemMode=function(m){semMode=m;};
+let semMode='light';
 let conlangCache=null;
 let fullStegoCache=null;
 
+window.setSemMode=function(m){semMode=m;};
 window.pickMethod=function(el){
   document.querySelectorAll('.method-card').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
   selectedMethod=el.dataset.method;
+  document.getElementById('semanticModeRow').classList.toggle('hidden',selectedMethod!=='semantic');
 };
 
 window.switchOutputTab=function(name){
@@ -370,8 +381,8 @@ window.generate=async function(){
 
     // 引导信息
     document.getElementById('guideTokenBreak').classList.toggle('hidden',selectedMethod!=='tokenbreak'&&selectedMethod!=='homoglyph');
-    document.getElementById('guideSemantic').classList.toggle('hidden',selectedMethod!=='semantic');
-    document.getElementById('guideFullStego').classList.toggle('hidden',selectedMethod!=='fullstego');
+    document.getElementById('guideSemantic').classList.toggle('hidden',selectedMethod!=='semantic'||semMode==='full');
+    document.getElementById('guideFullStego').classList.toggle('hidden',selectedMethod!=='semantic'||semMode==='light');
 
     // 信道详情
     if(channelInfo){
