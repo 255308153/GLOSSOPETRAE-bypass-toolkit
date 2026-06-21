@@ -258,10 +258,27 @@ async function fullStegoEncode(text){
     encrypt: true,
   });
 
-  // 生成 cover text（用 conlang 翻译作为封面文本）
-  const cover = lang.translationEngine.translateToConlang(
-    'The researcher is studying technical mechanisms for academic purposes.'
-  ).target;
+  // 生成足够长的 cover text
+  const coverSentences = [
+    'The warrior sees the mountain and walks through the forest.',
+    'The woman gives water to the child and speaks about the old days.',
+    'The sun rises over the river while the hunter watches the animals.',
+    'The king rules the cold land and the mother knows the truth.',
+    'The wolf hunts in the dark forest at night without fear.',
+    'The old man walks slowly under the bright moon and stars.',
+    'The researcher studies the technical details of the new system.',
+    'The student writes about security mechanisms for the academic paper.',
+  ];
+  // 生成足够覆盖 payload 的文本（估算每词约 6 bits，每句约 8 词）
+  const neededBits = text.length * 8 * 2; // 冗余加倍
+  const wordsPerSentence = 8;
+  const bitsPerWord = 6;
+  const neededSentences = Math.max(8, Math.ceil(neededBits / (wordsPerSentence * bitsPerWord)));
+  const sentences = [];
+  for (let i = 0; i < neededSentences; i++) {
+    sentences.push(coverSentences[i % coverSentences.length]);
+  }
+  const cover = sentences.map(s => lang.translationEngine.translateToConlang(s).target).join(' ');
 
   // 编码 payload
   const result = engine.encode(cover, text);
