@@ -317,11 +317,9 @@ async function conlangEncode(text){
 let selectedMethod='tokenbreak';
 let semMode='light';
 window.setSemMode=function(m){semMode=m;};
-let semMode='light';
 let conlangCache=null;
 let fullStegoCache=null;
 
-window.setSemMode=function(m){semMode=m;};
 window.pickMethod=function(el){
   document.querySelectorAll('.method-card').forEach(c=>c.classList.remove('selected'));
   el.classList.add('selected');
