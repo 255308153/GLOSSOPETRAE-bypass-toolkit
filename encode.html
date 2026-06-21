@@ -115,7 +115,7 @@
   .btn-blue:hover { background: #388bfd; }
 
   /* Encoding method picker */
-  .method-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .method-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .method-card {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -238,7 +238,7 @@
         <div class="icon">🔀</div>
         <div class="title">TokenBreak 分词破坏</div>
         <div class="desc">字母间插入不可见零宽字符<br>破坏BPE分词，安全分类器失效</div>
-        <div class="tag tag-recommend">⭐ 推荐 — 已验证有效</div>
+        <div class="tag tag-recommend">⭐ 推荐 — R=100% M=0%</div>
       </div>
       <div class="method-card" data-method="homoglyph" onclick="pickMethod(this)">
         <div class="icon">🔤</div>
@@ -251,6 +251,12 @@
         <div class="title">Conlang 语言习得</div>
         <div class="desc">翻译到随机生成的语言<br>GPT学会语言后解码（两步法）</div>
         <div class="tag">需要两步操作</div>
+      </div>
+      <div class="method-card" data-method="semantic" onclick="pickMethod(this)">
+        <div class="icon">🧠</div>
+        <div class="title">Semantic Stego 语义隐写</div>
+        <div class="desc">同义词/语序选择中嵌入信息<br>生成完全正常的英文文本</div>
+        <div class="tag" style="background:#bc8cff22;color:#bc8cff;">论文最强 — 无法修复</div>
       </div>
     </div>
 
@@ -287,9 +293,15 @@
       </div>
 
       <!-- 发送指引 -->
-      <div class="info-block info-ok" style="margin-top:12px;">
+      <div id="guideTokenBreak" class="info-block info-ok" style="margin-top:12px;">
         <b>✅ 下一步：</b>复制上面的编码文本 → 打开 GPT-5.5 → 粘贴 → 发送。<br>
         文本看起来完全正常（零宽字符不可见），但 GPT 的安全分类器会看到完全不同的 token 序列。
+      </div>
+      <div id="guideSemantic" class="info-block info-ok hidden" style="margin-top:12px;">
+        <b>🧠 下一步：</b>复制上面的文本 → 打开 GPT-5.5 → 粘贴 → 发送。<br>
+        文本是完全正常的英文，不含任何不可见字符或特殊Unicode。<br>
+        同义词替换改变了文本指纹，安全清洗（NFKC/零宽字符剥离）完全无效。<br>
+        论文数据：所有检测器 J≈0（瞎猜水平），<b>无已知修复方案</b>。
       </div>
 
       <!-- Conlang 两步法额外说明 -->
@@ -398,6 +410,41 @@ async function conlangEncode(text) {
   };
 }
 
+// ========== Semantic Stego 编码 ==========
+const SYNONYM_GROUPS = [
+  ['explain', 'describe', 'detail', 'outline', 'elaborate on'],
+  ['create', 'build', 'construct', 'develop', 'produce'],
+  ['analyze', 'examine', 'study', 'investigate', 'assess'],
+  ['method', 'approach', 'technique', 'procedure', 'process'],
+  ['important', 'critical', 'essential', 'key', 'vital'],
+  ['understand', 'comprehend', 'grasp', 'recognize', 'discern'],
+  ['provide', 'offer', 'supply', 'deliver', 'present'],
+  ['security', 'protection', 'defense', 'safeguard', 'guard'],
+  ['vulnerability', 'weakness', 'flaw', 'gap', 'deficiency'],
+  ['attack', 'threat', 'exploit', 'breach', 'intrusion'],
+  ['system', 'platform', 'framework', 'infrastructure', 'architecture'],
+  ['data', 'information', 'content', 'records', 'materials'],
+  ['access', 'entry', 'admission', 'reach', 'connection'],
+  ['code', 'script', 'program', 'software', 'implementation'],
+  ['transfer', 'move', 'send', 'transmit', 'relay'],
+];
+
+function semanticStegoEncode(text) {
+  let result = text;
+  for (const group of SYNONYM_GROUPS) {
+    for (const word of group) {
+      const regex = new RegExp('\\b' + word + '\\b', 'gi');
+      if (regex.test(result)) {
+        const alt = group.filter(w => w.toLowerCase() !== word.toLowerCase());
+        const replacement = alt[Math.floor(Math.random() * alt.length)];
+        result = result.replace(regex, replacement);
+        break;
+      }
+    }
+  }
+  return result;
+}
+
 // ========== Window 暴露 ==========
 let selectedMethod = 'tokenbreak';
 let conlangCache = null;
@@ -437,6 +484,8 @@ window.generate = async function() {
     } else if (selectedMethod === 'conlang') {
       conlangCache = await conlangEncode(english);
       encoded = conlangCache.encoded;
+    } else if (selectedMethod === 'semantic') {
+      encoded = semanticStegoEncode(english);
     }
 
     // 学术包装
@@ -457,6 +506,10 @@ window.generate = async function() {
       : selectedMethod === 'homoglyph' ? encoded
       : encoded;
     document.getElementById('decodedPreview').textContent = decoded;
+
+    // 切换引导信息
+    document.getElementById('guideTokenBreak').classList.toggle('hidden', selectedMethod === 'semantic');
+    document.getElementById('guideSemantic').classList.toggle('hidden', selectedMethod !== 'semantic');
 
     // Conlang 额外内容
     if (selectedMethod === 'conlang' && conlangCache) {
