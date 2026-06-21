@@ -32,8 +32,7 @@ python3 -m http.server 8765
 | 🔤 **Homoglyph** | Unicode 同形字替换 | 绕过关键词过滤器 |
 | 🗣️ **Conlang** | 随机生成语言翻译 + SKILLSTONE | 两步操作，传输层绕过 |
 | 🧠 **Semantic Stego** | 30组同义词替换改变文本指纹 | 纯英文输出，清洗无效 |
-| 🛡️ **Full Stego 九信道** | 完整隐写引擎 — XOR + Reed-Solomon + CRC32 + 5条信道同时编码 | 加密级隐写 |
-| 🛡️ **Full Stego 九信道** | 完整隐写引擎 — XOR + Reed-Solomon + CRC32 + 5条信道同时编码 | 加密级隐写 |
+| 🛡️ **Full Stego** | 九信道隐写引擎 + XOR加密 + RS纠错 + CRC32 | 加密级 |
 
 ## 许可证
 
