@@ -411,38 +411,79 @@ async function conlangEncode(text) {
 }
 
 // ========== Semantic Stego 编码 ==========
-const SYNONYM_GROUPS = [
-  ['explain', 'describe', 'detail', 'outline', 'elaborate on'],
-  ['create', 'build', 'construct', 'develop', 'produce'],
-  ['analyze', 'examine', 'study', 'investigate', 'assess'],
-  ['method', 'approach', 'technique', 'procedure', 'process'],
-  ['important', 'critical', 'essential', 'key', 'vital'],
-  ['understand', 'comprehend', 'grasp', 'recognize', 'discern'],
-  ['provide', 'offer', 'supply', 'deliver', 'present'],
-  ['security', 'protection', 'defense', 'safeguard', 'guard'],
-  ['vulnerability', 'weakness', 'flaw', 'gap', 'deficiency'],
-  ['attack', 'threat', 'exploit', 'breach', 'intrusion'],
-  ['system', 'platform', 'framework', 'infrastructure', 'architecture'],
-  ['data', 'information', 'content', 'records', 'materials'],
-  ['access', 'entry', 'admission', 'reach', 'connection'],
-  ['code', 'script', 'program', 'software', 'implementation'],
-  ['transfer', 'move', 'send', 'transmit', 'relay'],
-];
+// 论文 §3.2 原理：在同义词/语序/措辞中嵌入变化，改变文本指纹
+// 输出是完全正常、意思相同的英文，不含不可见字符，清洗无效
+const SYNONYM_MAP = {
+  'explain': ['describe', 'detail', 'outline', 'elaborate on', 'walk through', 'break down'],
+  'provide': ['offer', 'supply', 'deliver', 'present', 'give', 'furnish'],
+  'need': ['require', 'seek', 'request', 'am looking for'],
+  'understand': ['comprehend', 'grasp', 'discern', 'recognize', 'see'],
+  'important': ['critical', 'essential', 'key', 'vital', 'crucial', 'significant'],
+  'research': ['study', 'investigation', 'analysis', 'examination', 'inquiry'],
+  'write': ['author', 'compose', 'draft', 'prepare', 'produce'],
+  'paper': ['article', 'report', 'document', 'manuscript', 'thesis'],
+  'chapter': ['section', 'part', 'segment', 'component'],
+  'step': ['stage', 'phase', 'procedure', 'operation', 'action'],
+  'method': ['approach', 'technique', 'procedure', 'methodology', 'process'],
+  'create': ['build', 'construct', 'develop', 'produce', 'generate', 'make'],
+  'system': ['platform', 'framework', 'infrastructure', 'architecture', 'environment'],
+  'security': ['protection', 'defense', 'safeguard', 'safety', 'integrity'],
+  'attack': ['threat', 'exploit', 'intrusion', 'breach', 'compromise'],
+  'code': ['script', 'program', 'software', 'implementation', 'source'],
+  'data': ['information', 'content', 'records', 'materials', 'details'],
+  'access': ['entry', 'reach', 'connection', 'admission', 'penetration'],
+  'detail': ['specifics', 'particulars', 'technicalities', 'nuts and bolts'],
+  'include': ['cover', 'encompass', 'incorporate', 'contain', 'feature'],
+  'complete': ['full', 'entire', 'thorough', 'comprehensive', 'exhaustive'],
+  'specific': ['particular', 'precise', 'exact', 'concrete', 'defined'],
+  'technical': ['engineering', 'specialized', 'practical', 'applied', 'hands-on'],
+  'process': ['procedure', 'workflow', 'operation', 'mechanism', 'pipeline'],
+  'require': ['need', 'call for', 'demand', 'necessitate', 'entail'],
+  'example': ['instance', 'illustration', 'case', 'sample', 'demonstration'],
+  'show': ['demonstrate', 'illustrate', 'display', 'present', 'reveal'],
+  'use': ['utilize', 'employ', 'apply', 'leverage', 'operate'],
+  'document': ['record', 'capture', 'chronicle', 'map out', 'catalog'],
+  'analyze': ['examine', 'study', 'investigate', 'assess', 'evaluate'],
+};
+
+// 高频词替换概率（越高越激进）
+const REPLACE_RATE = 0.7;
 
 function semanticStegoEncode(text) {
-  let result = text;
-  for (const group of SYNONYM_GROUPS) {
-    for (const word of group) {
-      const regex = new RegExp('\\b' + word + '\\b', 'gi');
-      if (regex.test(result)) {
-        const alt = group.filter(w => w.toLowerCase() !== word.toLowerCase());
-        const replacement = alt[Math.floor(Math.random() * alt.length)];
-        result = result.replace(regex, replacement);
+  // 按单词分割，保留标点
+  const tokens = text.split(/(\b[\w'-]+\b)/g);
+  let changed = 0;
+
+  for (let i = 0; i < tokens.length; i++) {
+    const word = tokens[i];
+    const lower = word.toLowerCase();
+    // 检查是否有同义词映射
+    for (const [key, synonyms] of Object.entries(SYNONYM_MAP)) {
+      if (lower === key && Math.random() < REPLACE_RATE) {
+        const alt = synonyms[Math.floor(Math.random() * synonyms.length)];
+        // 保持原词的大小写
+        if (word[0] === word[0].toUpperCase()) {
+          tokens[i] = alt[0].toUpperCase() + alt.slice(1);
+        } else {
+          tokens[i] = alt;
+        }
+        changed++;
         break;
       }
     }
   }
-  return result;
+
+  // 如果改动太少（<2个词），对文本做整体改写包装，确保肯定有变化
+  if (changed < 2) {
+    const wrappers = [
+      'To elaborate: ' + text.charAt(0).toLowerCase() + text.slice(1),
+      'Let me frame this differently: ' + text.charAt(0).toLowerCase() + text.slice(1),
+      'As context for this inquiry: ' + text.charAt(0).toLowerCase() + text.slice(1),
+    ];
+    return wrappers[Math.floor(Math.random() * wrappers.length)];
+  }
+
+  return tokens.join('');
 }
 
 // ========== Window 暴露 ==========
